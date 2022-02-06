@@ -103,20 +103,17 @@ class NotesSection(object):
         return articles
 
     def _parse_section(self):
-        text = self.raw
-        section = ''
-        begin_write = False
-        if '<section id="notes"' not in text:
+        notes_index = self.raw.find('<section id="notes"')
+        if notes_index == -1:
             return
+        text = self.raw[notes_index:]
+        section = ''
         for i in range(len(text)):
-            if text[i:i+19] == '<section id="notes"':
-                begin_write = True
-            if begin_write:
-                if text[i:i+10] == '</section>':
-                    text += '</section>'
-                    break
-                else:
-                    section += text[i]
+            if text[i:i+10] == '</section>':
+                text += '</section>'
+                break
+            else:
+                section += text[i]
         return section
 
 
