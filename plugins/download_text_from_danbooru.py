@@ -4,6 +4,8 @@
 from gimpfu import *
 import requests
 import math
+import re
+
 
 class Note(object):
     def __init__(self, text):
@@ -11,19 +13,19 @@ class Note(object):
 
     @property
     def text(self):
-        if '<span>' in self._text:
-            text = self._text_from_spans()
-        else:
-            text = self._parse_value('data-body')
-        return text.replace('&amp;', '&').replace('&gt;', '>').replace('&lt;', '<').replace('&quot;', '"').replace('&#39;', "'").replace('&apos;', "'")
+        text = self._parse_value('data-body')
+        text = text.replace('&amp;', '&').replace('&gt;', '>').replace('&lt;', '<').replace('&quot;', '"').replace('&#39;', "'").replace('&apos;', "'")
+        text = re.sub('<[^>]*>', '', text).strip()  # May be too aggressive if there's legitimate instance of this, but fine for now
+        text = text.replace(' \n ', '\n')  # Span formating often has whitespace between new lines
+        return text
 
     @property
     def x(self):
-        return self._parse_int('data-x')
+        return self._parse_int('data-x', default_value=0)
 
     @property
     def y(self):
-        return self._parse_int('data-y')
+        return self._parse_int('data-y', default_value=0)
 
     @property
     def height(self):
@@ -33,46 +35,27 @@ class Note(object):
     def width(self):
         return self._parse_int('data-width', default_value=30)
 
-    def _parse_int(self, property_name, default_value=0):
+    def _parse_int(self, property_name, default_value):
         try:
             return int(float(self._parse_value(property_name)))
         except Exception:
             return default_value
 
-    def _text_from_spans(self):
-        text = self._text
-        spans = []
-        span_start = text.find('<span')
-        while span_start != -1:
-            text = text[span_start:]
-            build_text = False
-            span_text = ''
-            for i in range(len(text)):
-                if text[i] == '>':
-                    build_text = True
-                    continue
-                elif build_text:
-                    if text[i] == '<':
-                        spans.append(span_text.strip())
-                        text = text[i:]
-                        break
-                    else:
-                        span_text += text[i]
-            span_start = text.find('<span')
-        return '\n'.join(spans)
-
     def _parse_value(self, property_name):
-        text = self._text
-        value = ''
         match = property_name + '="'
-        offset = len(match)
-        for i in range(len(text)):
-            if text[i:i+offset] == match:
-                i += offset
-                while text[i] != '"':
-                    value += text[i]
-                    i += 1
-        return value
+        index = self._text.find(match)
+        if index == -1:
+            return ''
+        else:
+            text = self._text[index + len(match):]
+            out = ''
+            for i in range(len(text)):
+                if text[i] == '"':
+                    break
+                else:
+                    out += text[i]
+            return out
+
 
 class NotesSection(object):
     def __init__(self, html_text):
@@ -83,40 +66,27 @@ class NotesSection(object):
         return self.text is not None
 
     def notes(self):
-        articles = self._parse_article_text([], self.text)
-        for article_text in articles:
-            yield Note(article_text)
-
-    def _parse_article_text(self, articles, text):
-        article = ''
-        begin_write = False
-        for i in range(len(text)):
-            if text[i:i+9] == '<article ':
-                begin_write = True
-            if begin_write:
-                if text[i:i+10] == '</article>':
-                    article += '</article>'
-                    articles.append(article)
-                    return self._parse_article_text(articles, text.replace(article, ''))
-                else:
-                    article += text[i]
-        return articles
+        text = self.text
+        article_index = text.find('<article')
+        while article_index != -1:
+            text = text[article_index:]
+            end_index = text.find('</article')
+            yield Note(text[:end_index])
+            text = text[end_index:]
+            article_index = text.find('<article')
 
     def _parse_section(self):
-        text = self.raw
-        section = ''
-        begin_write = False
-        if '<section id="notes"' not in text:
+        notes_index = self.raw.find('<section id="notes"')
+        if notes_index == -1:
             return
+        text = self.raw[notes_index:]
+        section = ''
         for i in range(len(text)):
-            if text[i:i+19] == '<section id="notes"':
-                begin_write = True
-            if begin_write:
-                if text[i:i+10] == '</section>':
-                    text += '</section>'
-                    break
-                else:
-                    section += text[i]
+            if text[i:i+10] == '</section>':
+                text += '</section>'
+                break
+            else:
+                section += text[i]
         return section
 
 
@@ -148,6 +118,7 @@ def download_text_from_danbooru(image, http, font_name, font_size):
                 except Exception:
                     pass
     pdb.gimp_image_undo_group_end(image)
+
 
 register(
     'gimpfu-download-text-from-danbooru',
