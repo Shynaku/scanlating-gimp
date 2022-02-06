@@ -8,6 +8,9 @@ from gimpfu import *
 
 def create_text_halo(image, drawable, buffer_size):
     pdb.gimp_image_undo_group_start(image)
+    pdb.gimp_selection_clear(image)
+    pdb.gimp_image_select_item(image, CHANNEL_OP_ADD, drawable)
+    pdb.gimp_selection_grow(image, buffer_size)
     # Find or create layer named "halo"
     for halo_layer in image.layers:
         if halo_layer.name == 'halo':
@@ -21,12 +24,9 @@ def create_text_halo(image, drawable, buffer_size):
                                 LAYER_MODE_NORMAL_LEGACY)
         # Assumes the last layer is the original, then one layer above for removing text, redraws, etc.
         index = len(image.layers) - 2
-        if index < 1:
-            index = 1
+        if index < 0:
+            index = 0
         image.add_layer(halo_layer, index)
-    pdb.gimp_selection_clear(image)
-    pdb.gimp_image_select_item(image, CHANNEL_OP_ADD, drawable)
-    pdb.gimp_selection_grow(image, buffer_size)
     pdb.gimp_edit_fill(halo_layer, FILL_BACKGROUND)
     pdb.gimp_selection_clear(image)
     pdb.gimp_image_undo_group_end(image)
