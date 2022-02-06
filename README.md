@@ -10,3 +10,7 @@ Downloads the notes from a Danbooru page and positions them on the current image
 
 ### Add Text Halo to Halo Layer
 Adds a halo to the currently-selected layer using the current background color. It will search for a layer named "halo" (case sensitive), and it will create one in the third position from the bottom if one does not exist. (Warning: if it makes a new layer that ends up being above the selected layer, it will throw an error. I'm too lazy right now to add error handling for it.)
+
+## Other Resources
+### Resynthesizer
+Suite for "texture transfer". Incredibly useful for removing text on difficult background. You'll probably still need to do some cleanup, but having the machine do 90% of your work is a no brainer: https://github.com/bootchk/resynthesizer
