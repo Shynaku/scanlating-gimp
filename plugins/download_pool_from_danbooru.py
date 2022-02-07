@@ -88,7 +88,7 @@ def download_and_load(link, link_num, folder, font_name, font_size):
                 return xcf_path
 
 
-def download_pool_from_danbooru(folder, url, font_name, font_size):
+def download_pool_from_danbooru(folder, url, font_name, font_size, open_files):
     if not os.path.isdir(folder):
         os.mkdir(folder)
     url = url.split('?')[0]  # remove queries
@@ -106,8 +106,9 @@ def download_pool_from_danbooru(folder, url, font_name, font_size):
                     xcf_file = download_and_load(link, link_num, folder, font_name, font_size)
                     if xcf_file is not None:
                         files_to_open.append(xcf_file)
-    for xcf_file in files_to_open:
-        gimp.Display(pdb.gimp_file_load(xcf_file, xcf_file))
+    if open_files:
+        for xcf_file in files_to_open:
+            gimp.Display(pdb.gimp_file_load(xcf_file, xcf_file))
 
 
 register(
@@ -122,6 +123,7 @@ register(
         (PF_STRING, 'pool', 'Link to Danbooru pool', None),
         (PF_FONT, 'font', 'Font Name', DEFAULT_TEXT_FONT),
         (PF_SPINNER, 'size', 'Font Size', DEFAULT_TEXT_SIZE, (1, 3000, 1)),
+        (PF_BOOL, 'load', 'Load Files after download', True, None)
     ],
     [],
     download_pool_from_danbooru,
