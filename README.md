@@ -8,6 +8,9 @@ Either copy the files in the "plugin" folder into your GIMP plug-ins folder or m
 ### Download Text from Danbooru
 Downloads the notes from a Danbooru page and positions them on the current image. It will likely work with other \*boorus (tested on Gelbooru once), but the code will be maintained for Danbooru.
 
+### Download Pool from Danbooru
+Downloads all of the images from a pool, saves them in a specified folder, and applies the text (using the same method as `Download Text from Danbooru`). Files will be saved with the number they appear by in the pool. Unlike `Download Text from Danbooru`, this will only work with Danbooru pools. XCF files with the text will be saved and loaded after the tool completes. Currently, it will download any file extension, but only JPEG, PNG, and GIF files will be loaded with notes attached.
+
 ### Add Text Halo to Halo Layer
 Adds a halo to the currently-selected layer using the current background color. It will search for a layer named "halo" (case sensitive), and it will create one in the third position from the bottom if one does not exist.
 
