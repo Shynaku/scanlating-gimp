@@ -102,10 +102,10 @@ def download_pool_from_danbooru(folder, url, font_name, font_size, open_files):
                     links = find_pool_links(response=response)
                 else:
                     links = find_pool_links(url='{0}?page={1}'.format(url, i))
-                for link_num, link in enumerate(links, start=1):
-                    xcf_file = download_and_load(link, link_num, folder, font_name, font_size)
-                    if xcf_file is not None:
-                        files_to_open.append(xcf_file)
+            for link_num, link in enumerate(links, start=1):
+                xcf_file = download_and_load(link, link_num, folder, font_name, font_size)
+                if xcf_file is not None:
+                    files_to_open.append(xcf_file)
     if open_files:
         for xcf_file in files_to_open:
             gimp.Display(pdb.gimp_file_load(xcf_file, xcf_file))
