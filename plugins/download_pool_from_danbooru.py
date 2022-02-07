@@ -97,11 +97,12 @@ def download_pool_from_danbooru(folder, url, font_name, font_size, open_files):
     if response.status_code == 200:
         page_count = find_page_count(response)
         if page_count:
+            links = []
             for i in range(1, page_count + 1):
                 if i == 1:
-                    links = find_pool_links(response=response)
+                    links += find_pool_links(response=response)
                 else:
-                    links = find_pool_links(url='{0}?page={1}'.format(url, i))
+                    links += find_pool_links(url='{0}?page={1}'.format(url, i))
             for link_num, link in enumerate(links, start=1):
                 xcf_file = download_and_load(link, link_num, folder, font_name, font_size)
                 if xcf_file is not None:
