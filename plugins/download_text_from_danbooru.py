@@ -1,6 +1,9 @@
 #! /usr/bin/env python2
 '''Downloads the text from notes on Danbooru and adds them to the image. Default values are based on what I use.'''
 
+DEFAULT_TEXT_FONT = 'Wurper Regular,'
+DEFAULT_TEXT_SIZE = 28
+
 from gimpfu import *
 import requests
 import math
@@ -8,15 +11,19 @@ import re
 
 
 class Note(object):
+    '''Parser for a Danbooru note.'''
+
     def __init__(self, text):
         self._text = text
 
     @property
     def text(self):
         text = self._parse_value('data-body')
+        if text == '':
+            return "Unable to parse note text!"
         text = text.replace('&amp;', '&').replace('&gt;', '>').replace('&lt;', '<').replace('&quot;', '"').replace('&#39;', "'").replace('&apos;', "'")
-        text = re.sub('<[^>]*>', '', text).strip()  # May be too aggressive if there's legitimate instance of this, but fine for now
-        text = text.replace(' \n ', '\n')  # Span formating often has whitespace between new lines
+        text = re.sub('<[^>]*>', '', text)  # May be too aggressive if there's legitimate instance of this, but fine for now
+        text = text.replace(' \n ', '\n').strip()  # Text tends to have spaces before and after, including between spans
         return text
 
     @property
@@ -58,14 +65,17 @@ class Note(object):
 
 
 class NotesSection(object):
+    '''Holds and parses the section of the html code with the notes.
+    Could maybe be turned into an iterator function, but I'm keeping it around in case it's useful in the future.'''
+
     def __init__(self, html_text):
         self.raw = html_text
         self.text = self._parse_section()
 
     def has_notes(self):
-        return self.text is not None
+        return bool(self.text)
 
-    def notes(self):
+    def __iter__(self):
         text = self.text
         article_index = text.find('<article')
         while article_index != -1:
@@ -75,19 +85,15 @@ class NotesSection(object):
             text = text[end_index:]
             article_index = text.find('<article')
 
+    def notes(self):
+        return list(self)
+
     def _parse_section(self):
         notes_index = self.raw.find('<section id="notes"')
         if notes_index == -1:
-            return
+            return ''
         text = self.raw[notes_index:]
-        section = ''
-        for i in range(len(text)):
-            if text[i:i+10] == '</section>':
-                text += '</section>'
-                break
-            else:
-                section += text[i]
-        return section
+        return text[:text.find('</section')]
 
 
 def download_text_from_danbooru(image, http, font_name, font_size):
@@ -95,28 +101,27 @@ def download_text_from_danbooru(image, http, font_name, font_size):
     resp = requests.get(http)
     if resp.status_code == 200:
         notes = NotesSection(resp.text)
-        if notes.has_notes():
-            for note in notes.notes():
-                try:
-                    lyr = pdb.gimp_text_fontname(
-                        image,
-                        None,
-                        note.x,
-                        note.y,
-                        note.text,
-                        0,
-                        True,
-                        font_size,
-                        PIXELS,
-                        font_name
-                    )
-                    pdb.gimp_text_layer_set_justification(lyr, 2)
-                    pdb.gimp_text_layer_resize(lyr, note.width, note.height)
-                    if font_name == 'Wurper Regular,':
-                        spacing = int(math.sqrt(font_size * .75))
-                        pdb.gimp_text_layer_set_line_spacing(lyr, -1 * spacing)
-                except Exception:
-                    pass
+        for note in notes:
+            try:
+                lyr = pdb.gimp_text_fontname(
+                    image,
+                    None,
+                    note.x,
+                    note.y,
+                    note.text,
+                    0,
+                    True,
+                    font_size,
+                    PIXELS,
+                    font_name
+                )
+                pdb.gimp_text_layer_set_justification(lyr, 2)
+                pdb.gimp_text_layer_resize(lyr, note.width, note.height)
+                if font_name == 'Wurper Regular,':
+                    spacing = int(math.sqrt(font_size * .75))
+                    pdb.gimp_text_layer_set_line_spacing(lyr, -1 * spacing)
+            except Exception:
+                pass
     pdb.gimp_image_undo_group_end(image)
 
 
@@ -130,8 +135,8 @@ register(
     [
         (PF_IMAGE, 'image', 'takes current image', None),
         (PF_STRING, 'string', 'Link to Danbooru page', None),
-        (PF_FONT, 'font', 'Font Name', 'Wurper Regular,'),
-        (PF_SPINNER, 'size', 'Font Size', 28, (1, 3000, 1)),
+        (PF_FONT, 'font', 'Font Name', DEFAULT_TEXT_FONT),
+        (PF_SPINNER, 'size', 'Font Size', DEFAULT_TEXT_SIZE, (1, 3000, 1)),
     ],
     [],
     download_text_from_danbooru,
