@@ -98,6 +98,9 @@ def download_text_from_danbooru(image, http, font_name, font_size):
     pdb.gimp_image_undo_group_start(image)
     resp = requests.get(http)
     if resp.status_code == 200:
+        group = pdb.gimp_layer_group_new(image)
+        group.name = 'Danbooru Text'
+        pdb.gimp_image_insert_layer(image, group, None, 0)
         notes = NotesSection(resp.text)
         for note in notes:
             try:
@@ -118,6 +121,7 @@ def download_text_from_danbooru(image, http, font_name, font_size):
                 if font_name == 'Wurper Regular,':
                     spacing = int(math.sqrt(font_size * .75))
                     pdb.gimp_text_layer_set_line_spacing(lyr, -1 * spacing)
+                pdb.gimp_image_reorder_item(image, lyr, group, 0)
             except Exception:
                 pass
     pdb.gimp_image_undo_group_end(image)
